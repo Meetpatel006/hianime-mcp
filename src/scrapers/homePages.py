@@ -1,3 +1,4 @@
+"""Homepage scraping functionality."""
 from typing import Dict, Any
 import requests
 from bs4 import BeautifulSoup
@@ -42,55 +43,71 @@ class HomePageScraper:
             
             result = HomePage()
 
-            # Extract spotlight animes
-            for item in soup.select("#slider .swiper-wrapper .swiper-slide"):
-                other_info = [info.text.strip() for info in item.select(".deslide-item-content .sc-detail .scd-item")[:-1]]
-                
-                anime_info = extract_base_anime_info(item)
-                anime = SpotlightAnime(
-                    id=anime_info.get("id") or extract_href_id(item, ".deslide-item-content .desi-buttons a"),
-                    name=anime_info.get("name") or extract_text(item, ".deslide-item-content .desi-head-title.dynamic-name"),
-                    description=(extract_text(item, ".deslide-item-content .desi-description") or "").split("[")[0].strip(),
-                    poster=anime_info.get("poster"),
-                    jname=anime_info.get("jname"),
-                    type=anime_info.get("type") or (other_info[0] if other_info else None),
-                    otherInfo=other_info,
-                    episodes=EpisodeInfo(**vars(extract_episodes(item)))
-                )
-                
-                # Extract rank
-                rank_text = extract_text(item, ".deslide-item-content .desi-sub-text")
-                if rank_text:
-                    anime.rank = safe_int_extract(rank_text.split()[0][1:])
-                
-                result.spotlightAnimes.append(anime)
-                logger.debug(f"Added spotlight anime: {anime.name}")
+            try:
+                # Extract spotlight animes
+                spotlight_container = soup.select_one(".swiper-wrapper")
+                if spotlight_container:
+                    for item in spotlight_container.select(".swiper-slide"):
+                        other_info = [info.text.strip() for info in item.select(".sc-detail .scd-item")[:-1]]
+                        
+                        anime_info = extract_base_anime_info(item)
+                        anime = SpotlightAnime(
+                            id=anime_info.get("id") or extract_href_id(item, ".desi-buttons a"),
+                            name=anime_info.get("name") or extract_text(item, ".desi-head-title.dynamic-name"),
+                            description=(extract_text(item, ".desi-description") or "").split("[")[0].strip(),
+                            poster=anime_info.get("poster"),
+                            jname=anime_info.get("jname"),
+                            type=anime_info.get("type") or (other_info[0] if other_info else None),
+                            otherInfo=other_info,
+                            episodes=EpisodeInfo(**vars(extract_episodes(item)))
+                        )
+                        
+                        # Extract rank
+                        rank_text = extract_text(item, ".desi-sub-text")
+                        if rank_text:
+                            anime.rank = safe_int_extract(rank_text.split()[0][1:])
+                        
+                        result.spotlightAnimes.append(anime)
+                        logger.debug(f"Added spotlight anime: {anime.name}")
+                else:
+                    logger.warning("Spotlight container not found")
 
-            # Extract trending animes
-            for item in soup.select("#trending-home .swiper-wrapper .swiper-slide"):
-                rank_text = extract_text(item.select_one(".item .number"), "")
-                rank = safe_int_extract(rank_text) if rank_text else 0
-                
-                anime_info = extract_base_anime_info(item)
-                anime = TrendingAnime(
-                    rank=rank,
-                    id=anime_info.get("id"),
-                    name=anime_info.get("name"),
-                    jname=anime_info.get("jname"),
-                    poster=anime_info.get("poster"),
-                    type=anime_info.get("type"),
-                    episodes=EpisodeInfo(**vars(extract_episodes(item)))
-                )
-                
-                result.trendingAnimes.append(anime)
-                logger.debug(f"Added trending anime: {anime.name}")
+                # Extract trending animes
+                trending_container = soup.select_one("#trending-content")
+                if trending_container:
+                    for item in trending_container.select(".flw-item"):
+                        rank_text = extract_text(item.select_one(".number"), "")
+                        rank = safe_int_extract(rank_text) if rank_text else 0
+                        
+                        anime_info = extract_base_anime_info(item)
+                        anime = TrendingAnime(
+                            rank=rank,
+                            id=anime_info.get("id"),
+                            name=anime_info.get("name"),
+                            jname=anime_info.get("jname"),
+                            poster=anime_info.get("poster"),
+                            type=anime_info.get("type"),
+                            episodes=EpisodeInfo(**vars(extract_episodes(item)))
+                        )
+                        
+                        result.trendingAnimes.append(anime)
+                        logger.debug(f"Added trending anime: {anime.name}")
+                else:
+                    logger.warning("Trending container not found")
 
-            # Extract genres
-            genre_items = soup.select("#main-sidebar .block_area.block_area_sidebar.block_area-genres .sb-genre-list li")
-            result.genres = [genre.text.strip() for genre in genre_items]
-            logger.debug(f"Extracted {len(result.genres)} genres")
+                # Extract genres
+                genre_container = soup.select_one(".block_area-genres")
+                if genre_container:
+                    result.genres = [genre.text.strip() for genre in genre_container.select(".genre-list a")]
+                    logger.debug(f"Extracted {len(result.genres)} genres")
+                else:
+                    logger.warning("Genre container not found")
 
-            return result
+                return result
+
+            except Exception as scrape_error:
+                logger.error(f"Error while scraping content: {str(scrape_error)}")
+                raise Exception(f"Error extracting content: {str(scrape_error)}")
 
         except Exception as e:
             logger.error(f"Failed to get homepage: {str(e)}")
