@@ -11,6 +11,7 @@ from .media import (
 from .anime import (
     BaseAnime,
     AnimeStats,
+    AnimeInfo,
     Anime,
     SpotlightAnime,
     TrendingAnime,
@@ -36,6 +37,7 @@ __all__ = [
     # Anime models
     'BaseAnime',
     'AnimeStats',
+    'AnimeInfo',
     'Anime',
     'SpotlightAnime',
     'TrendingAnime',

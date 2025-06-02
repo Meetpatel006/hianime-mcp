@@ -23,6 +23,16 @@ class AnimeStats:
     duration: Optional[str] = None
 
 @dataclass
+class AnimeInfo(BaseAnime):
+    """Detailed anime information."""
+    anilistId: Optional[int] = None
+    malId: Optional[int] = None
+    description: Optional[str] = None
+    stats: AnimeStats = field(default_factory=AnimeStats)
+    promotionalVideos: List['PromotionalVideo'] = field(default_factory=list)
+    charactersVoiceActors: List['CharacterVoiceActor'] = field(default_factory=list)
+
+@dataclass
 class Anime(BaseAnime):
     """Standard anime model."""
     duration: Optional[str] = None
