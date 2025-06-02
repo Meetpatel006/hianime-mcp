@@ -9,6 +9,8 @@ wheels/
 .vscode/
 *.egg-info
 logs/
+memory-bank/
+docs/
 
 # Virtual environments
 .venv
