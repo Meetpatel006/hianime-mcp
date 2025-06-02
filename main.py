@@ -1,20 +1,16 @@
-# server.py
+"""MCP server implementation for anime scraping."""
 import os
-import logging
-import json
 import sys
 import asyncio
 from mcp.server.fastmcp import FastMCP, Context
-from scrapers.homePages import HomePageScraper
-from scrapers.animeAboutInfo import get_anime_about_info as scrape_anime_about_info
+
+from src.management import get_logger
+from src.scrapers import HomePageScraper
+from src.scrapers.animeAboutInfo import get_anime_about_info as scrape_anime_about_info
+from src.utils.config import Config
 
 # Configure logging
-logging.basicConfig(
-    level=logging.ERROR,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    stream=sys.stderr  # Log to stderr for better debugging
-)
-logger = logging.getLogger("AnimeMCP")
+logger = get_logger("AnimeMCP")
 
 # Create an MCP server
 mcp = FastMCP("Anime Assistant")
@@ -29,7 +25,7 @@ except Exception as e:
 # Add Aniwatch tools
 @mcp.tool()
 async def get_home_page(ctx: Context) -> dict:
-    """Get anime information from Aniwatch homepage"""
+    """Get anime information from Aniwatch homepage."""
     try:
         result = home_page_scraper.get_home_page()
         return {
@@ -70,7 +66,7 @@ async def get_home_page(ctx: Context) -> dict:
 
 @mcp.tool()
 async def get_trending_anime(ctx: Context) -> dict:
-    """Get trending anime from Aniwatch homepage"""
+    """Get trending anime from Aniwatch homepage."""
     try:
         result = home_page_scraper.get_home_page()
         return {
@@ -95,7 +91,7 @@ async def get_trending_anime(ctx: Context) -> dict:
 
 @mcp.tool()
 async def get_anime_genres(ctx: Context) -> dict:
-    """Get available anime genres from Aniwatch"""
+    """Get available anime genres from Aniwatch."""
     try:
         result = home_page_scraper.get_home_page()
         return {"genres": result.genres}
@@ -105,7 +101,7 @@ async def get_anime_genres(ctx: Context) -> dict:
 
 @mcp.tool()
 async def get_anime_recommendations(ctx: Context) -> dict:
-    """Get anime recommendations based on current trends"""
+    """Get anime recommendations based on current trends."""
     try:
         result = home_page_scraper.get_home_page()
         spotlight = result.spotlightAnimes[0] if result.spotlightAnimes else None
@@ -142,7 +138,7 @@ async def get_anime_recommendations(ctx: Context) -> dict:
 
 @mcp.tool()
 async def get_anime_about_info(ctx: Context, anime_id: str = "") -> dict:
-    """Get detailed information about an anime"""
+    """Get detailed information about an anime."""
     try:
         if not anime_id:
             raise ValueError("anime_id is required")
@@ -242,16 +238,13 @@ async def get_anime_about_info(ctx: Context, anime_id: str = "") -> dict:
             "error": str(e)
         }
 
-
-# Remove the async main() client code and its call
-# The following block ensures this file is only an MCP server
 if __name__ == "__main__":
     try:
         logger.info("Starting MCP server...")
+        # Apply configuration
+        if Config.DEBUG_MODE:
+            logger.info("Running in debug mode")
         mcp.run()
     except Exception as e:
         logger.error(f"Failed to run server: {str(e)}")
         sys.exit(1)
-
-
-
