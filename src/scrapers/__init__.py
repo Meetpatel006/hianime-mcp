@@ -1,6 +1,9 @@
 """Anime scraping functionality."""
 
-from .animeAboutInfo import AnimeAboutInfo
 from .homePages import HomePageScraper
+from .animeAboutInfo import get_anime_about_info
 
-__all__ = ['AnimeAboutInfo', 'HomePageScraper']
+__all__ = [
+    'HomePageScraper',
+    'get_anime_about_info'
+]
