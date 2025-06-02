@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import logging
 import json
 import cloudscraper
-from .constants import SRC_BASE_URL, USER_AGENT_HEADER, ACCEPT_HEADER, ACCEPT_ENCODING_HEADER
+from src.utils.constants import SRC_BASE_URL, USER_AGENT_HEADER, ACCEPT_HEADER, ACCEPT_ENCODING_HEADER
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -434,4 +434,4 @@ def extract_animes(soup: BeautifulSoup, selector: str) -> List[Dict]:
         
         if anime:
             animes.append(anime)
-    return animes 
+    return animes

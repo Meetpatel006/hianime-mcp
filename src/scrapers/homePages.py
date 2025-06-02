@@ -1,12 +1,18 @@
-import requests
-from bs4 import BeautifulSoup
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
+import requests
+from bs4 import BeautifulSoup
 from mcp.server.fastmcp import FastMCP, Context
 
+from src.management import get_logger
+from src.utils.constants import SRC_BASE_URL
+from src.utils.config import Config
+
+# Configure logging
+logger = get_logger("HomePageScraper")
+
 # Constants
-BASE_URL = "https://hianimez.to"
-HOME_URL = f"{BASE_URL}/home"
+HOME_URL = f"{SRC_BASE_URL}/home"
 
 # Data classes for type safety
 @dataclass
@@ -69,12 +75,11 @@ class HomePage:
 class HomePageScraper:
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
+        self.session.headers.update(Config.get_headers())
 
     def get_home_page(self) -> HomePage:
         try:
+            logger.debug(f"Fetching homepage from {HOME_URL}")
             response = self.session.get(HOME_URL)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -121,6 +126,7 @@ class HomePageScraper:
                 )
                 
                 result.spotlightAnimes.append(anime)
+                logger.debug(f"Added spotlight anime: {anime.name}")
 
             # Extract trending animes
             trending_items = soup.select("#trending-home .swiper-wrapper .swiper-slide")
@@ -144,14 +150,17 @@ class HomePageScraper:
                     type=item.select_one(".item .fd-infor .tick-item.tick-type").text.strip() if item.select_one(".item .fd-infor .tick-item.tick-type") else None
                 )
                 result.trendingAnimes.append(anime)
+                logger.debug(f"Added trending anime: {anime.name}")
 
             # Extract genres
             genre_items = soup.select("#main-sidebar .block_area.block_area_sidebar.block_area-genres .sb-genre-list li")
             result.genres = [genre.text.strip() for genre in genre_items]
+            logger.debug(f"Extracted {len(result.genres)} genres")
 
             return result
 
         except Exception as e:
+            logger.error(f"Failed to get homepage: {str(e)}")
             raise Exception(f"Failed to get homepage: {str(e)}")
 
 # Create MCP server
@@ -201,5 +210,5 @@ def get_home_page(ctx: Context) -> dict:
             "genres": result.genres
         }
     except Exception as e:
+        logger.error(f"Failed to get homepage: {str(e)}")
         raise Exception(f"Failed to get homepage: {str(e)}")
-
