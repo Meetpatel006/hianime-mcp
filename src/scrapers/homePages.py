@@ -1,5 +1,4 @@
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import Dict, Any
 import requests
 from bs4 import BeautifulSoup
 from mcp.server.fastmcp import FastMCP, Context
@@ -8,13 +7,19 @@ from src.management import get_logger
 from src.utils.constants import SRC_BASE_URL
 from src.utils.config import Config
 from src.utils import (
-    EpisodeInfo as BaseEpisodeInfo,
     extract_episodes,
     extract_base_anime_info,
     extract_text,
-    extract_attribute,
     extract_href_id,
     safe_int_extract
+)
+from src.models import (
+    EpisodeInfo,
+    Anime,
+    SpotlightAnime,
+    TrendingAnime,
+    HomePage,
+    Top10Anime
 )
 
 # Configure logging
@@ -22,64 +27,6 @@ logger = get_logger("HomePageScraper")
 
 # Constants
 HOME_URL = f"{SRC_BASE_URL}/home"
-
-# Data classes for type safety
-@dataclass
-class AnimeEpisodes(BaseEpisodeInfo):
-    """Extend base episode info for compatibility."""
-    pass
-
-@dataclass
-class SpotlightAnime:
-    rank: Optional[int] = None
-    id: Optional[str] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    poster: Optional[str] = None
-    jname: Optional[str] = None
-    episodes: AnimeEpisodes = field(default_factory=AnimeEpisodes)
-    type: Optional[str] = None
-    otherInfo: List[str] = field(default_factory=list)
-
-@dataclass
-class TrendingAnime:
-    rank: int
-    id: Optional[str] = None
-    name: Optional[str] = None
-    jname: Optional[str] = None
-    poster: Optional[str] = None
-    episodes: AnimeEpisodes = field(default_factory=AnimeEpisodes)
-    type: Optional[str] = None
-
-@dataclass
-class Anime:
-    id: Optional[str] = None
-    name: Optional[str] = None
-    jname: Optional[str] = None
-    poster: Optional[str] = None
-    duration: Optional[str] = None
-    type: Optional[str] = None
-    rating: Optional[str] = None
-    episodes: AnimeEpisodes = field(default_factory=AnimeEpisodes)
-
-@dataclass
-class Top10Anime:
-    today: List[Anime] = field(default_factory=list)
-    week: List[Anime] = field(default_factory=list)
-    month: List[Anime] = field(default_factory=list)
-
-@dataclass
-class HomePage:
-    spotlightAnimes: List[SpotlightAnime] = field(default_factory=list)
-    trendingAnimes: List[TrendingAnime] = field(default_factory=list)
-    latestEpisodeAnimes: List[Anime] = field(default_factory=list)
-    topUpcomingAnimes: List[Anime] = field(default_factory=list)
-    top10Animes: Top10Anime = field(default_factory=Top10Anime)
-    topAiringAnimes: List[Anime] = field(default_factory=list)
-    mostPopularAnimes: List[Anime] = field(default_factory=list)
-    mostFavoriteAnimes: List[Anime] = field(default_factory=list)
-    latestCompletedAnimes: List[Anime] = field(default_factory=list)
-    genres: List[str] = field(default_factory=list)
 
 class HomePageScraper:
     def __init__(self):
@@ -108,7 +55,7 @@ class HomePageScraper:
                     jname=anime_info.get("jname"),
                     type=anime_info.get("type") or (other_info[0] if other_info else None),
                     otherInfo=other_info,
-                    episodes=AnimeEpisodes(**vars(extract_episodes(item)))
+                    episodes=EpisodeInfo(**vars(extract_episodes(item)))
                 )
                 
                 # Extract rank
@@ -122,10 +69,7 @@ class HomePageScraper:
             # Extract trending animes
             for item in soup.select("#trending-home .swiper-wrapper .swiper-slide"):
                 rank_text = extract_text(item.select_one(".item .number"), "")
-                rank = safe_int_extract(rank_text) if rank_text else None
-                
-                if not rank:
-                    continue
+                rank = safe_int_extract(rank_text) if rank_text else 0
                 
                 anime_info = extract_base_anime_info(item)
                 anime = TrendingAnime(
@@ -135,7 +79,7 @@ class HomePageScraper:
                     jname=anime_info.get("jname"),
                     poster=anime_info.get("poster"),
                     type=anime_info.get("type"),
-                    episodes=AnimeEpisodes(**vars(extract_episodes(item)))
+                    episodes=EpisodeInfo(**vars(extract_episodes(item)))
                 )
                 
                 result.trendingAnimes.append(anime)

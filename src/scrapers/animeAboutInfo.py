@@ -1,14 +1,17 @@
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union
-import requests
-from bs4 import BeautifulSoup
+"""Anime details scraping functionality."""
+from typing import Dict, Optional, Union
 import json
 import cloudscraper
+from bs4 import BeautifulSoup
 
 from src.management import get_logger
-from src.utils.constants import SRC_BASE_URL, USER_AGENT_HEADER, ACCEPT_HEADER, ACCEPT_ENCODING_HEADER
+from src.utils.constants import (
+    SRC_BASE_URL,
+    USER_AGENT_HEADER,
+    ACCEPT_HEADER,
+    ACCEPT_ENCODING_HEADER
+)
 from src.utils import (
-    EpisodeInfo as BaseEpisodeInfo,
     extract_episodes,
     extract_base_anime_info,
     extract_text,
@@ -16,89 +19,20 @@ from src.utils import (
     extract_href_id,
     safe_int_extract
 )
+from src.models import (
+    AnimeStats,
+    AnimeInfo,
+    Season,
+    RecommendedAnime,
+    PromotionalVideo,
+    Character,
+    VoiceActor,
+    CharacterVoiceActor,
+    EpisodeInfo
+)
 
 # Configure logging
 logger = get_logger("AnimeAboutInfo")
-
-@dataclass
-class AnimeStats:
-    rating: Optional[str] = None
-    quality: Optional[str] = None
-    episodes: Dict[str, Optional[int]] = field(default_factory=lambda: {"sub": None, "dub": None})
-    type: Optional[str] = None
-    duration: Optional[str] = None
-
-@dataclass
-class PromotionalVideo:
-    title: Optional[str] = None
-    source: Optional[str] = None
-    thumbnail: Optional[str] = None
-
-@dataclass
-class Character:
-    id: str = ""
-    poster: str = ""
-    name: str = ""
-    cast: str = ""
-
-@dataclass
-class VoiceActor:
-    id: str = ""
-    poster: str = ""
-    name: str = ""
-    cast: str = ""
-
-@dataclass
-class CharacterVoiceActor:
-    character: Character
-    voiceActor: VoiceActor
-
-@dataclass
-class AnimeInfo:
-    id: Optional[str] = None
-    anilistId: Optional[int] = None
-    malId: Optional[int] = None
-    name: Optional[str] = None
-    poster: Optional[str] = None
-    description: Optional[str] = None
-    stats: AnimeStats = field(default_factory=AnimeStats)
-    promotionalVideos: List[PromotionalVideo] = field(default_factory=list)
-    charactersVoiceActors: List[CharacterVoiceActor] = field(default_factory=list)
-
-@dataclass
-class Season:
-    id: Optional[str] = None
-    name: Optional[str] = None
-    title: Optional[str] = None
-    poster: Optional[str] = None
-    isCurrent: bool = False
-
-@dataclass
-class RecommendedAnime:
-    id: Optional[str] = None
-    name: Optional[str] = None
-    jname: Optional[str] = None
-    poster: Optional[str] = None
-    type: Optional[str] = None
-    duration: Optional[str] = None
-    episodes: Dict[str, Optional[int]] = field(default_factory=lambda: {"sub": None, "dub": None, "total": None})
-
-@dataclass
-class AnimeAboutInfo:
-    success: bool = True
-    data: Dict[str, Union[Dict[str, Union[AnimeInfo, Dict[str, List[str]]]], List[Union[Season, RecommendedAnime]]]] = field(default_factory=lambda: {
-        "anime": {
-            "info": AnimeInfo(),
-            "moreInfo": {
-                "genres": [],
-                "studios": []
-            }
-        },
-        "seasons": [],
-        "mostPopularAnimes": [],
-        "relatedAnimes": [],
-        "recommendedAnimes": []
-    })
 
 def extract_season_info(element: BeautifulSoup) -> Season:
     """Extract season information from HTML element."""
@@ -163,7 +97,7 @@ def extract_promotional_video(element: BeautifulSoup) -> Optional[PromotionalVid
         thumbnail=extract_attribute(element, "img", "src")
     )
 
-def get_anime_about_info(anime_id: str) -> AnimeAboutInfo:
+def get_anime_about_info(anime_id: str) -> Optional[Dict[str, Union[Dict, bool]]]:
     """Get detailed information about an anime."""
     if not anime_id.strip() or "-" not in anime_id:
         raise ValueError("Invalid anime id")
@@ -205,18 +139,33 @@ def get_anime_about_info(anime_id: str) -> AnimeAboutInfo:
         
         # Parse with BeautifulSoup
         soup = BeautifulSoup(response.text, 'lxml')
-        result = AnimeAboutInfo()
         
-        # Set the anime id field
-        result.data["anime"]["info"].id = anime_id
+        result = {
+            "success": True,
+            "data": {
+                "anime": {
+                    "info": AnimeInfo(id=anime_id),
+                    "moreInfo": {
+                        "genres": [],
+                        "studios": []
+                    }
+                },
+                "seasons": [],
+                "mostPopularAnimes": [],
+                "relatedAnimes": [],
+                "recommendedAnimes": []
+            }
+        }
+        
+        info = result["data"]["anime"]["info"]
         
         # Extract sync data for IDs
         sync_data = soup.find("script", id="syncData")
         if sync_data and sync_data.text:
             try:
                 sync_json = json.loads(sync_data.text)
-                result.data["anime"]["info"].anilistId = safe_int_extract(sync_json.get("anilist_id", "0"))
-                result.data["anime"]["info"].malId = safe_int_extract(sync_json.get("mal_id", "0"))
+                info.anilistId = safe_int_extract(sync_json.get("anilist_id", "0"))
+                info.malId = safe_int_extract(sync_json.get("mal_id", "0"))
             except json.JSONDecodeError:
                 logger.warning("Failed to parse sync data as JSON")
         
@@ -224,7 +173,6 @@ def get_anime_about_info(anime_id: str) -> AnimeAboutInfo:
         content = soup.select_one("#ani_detail .container .anis-content")
         if content:
             # Extract base info
-            info = result.data["anime"]["info"]
             anime_info = extract_base_anime_info(content)
             info.name = anime_info.get("name")
             info.poster = anime_info.get("poster")
@@ -252,10 +200,10 @@ def get_anime_about_info(anime_id: str) -> AnimeAboutInfo:
                 info.stats.episodes["dub"] = eps.dub
             
             # Extract genres and studios
-            result.data["anime"]["moreInfo"]["genres"] = [
+            result["data"]["anime"]["moreInfo"]["genres"] = [
                 genre.text.strip() for genre in content.select(".anisc-info .item-list a")
             ]
-            result.data["anime"]["moreInfo"]["studios"] = [
+            result["data"]["anime"]["moreInfo"]["studios"] = [
                 studio.text.strip() for studio in content.select(".anisc-info .item-title a.name")
             ]
             
@@ -265,7 +213,7 @@ def get_anime_about_info(anime_id: str) -> AnimeAboutInfo:
                 season = extract_season_info(season_elem)
                 if season.id:  # Only add if we got a valid ID
                     seasons.append(season)
-            result.data["seasons"] = seasons
+            result["data"]["seasons"] = seasons
             
             # Extract characters and voice actors
             cva_list = []
@@ -273,7 +221,7 @@ def get_anime_about_info(anime_id: str) -> AnimeAboutInfo:
                 cva = extract_character_voice_actor(char_elem)
                 if cva:
                     cva_list.append(cva)
-            result.data["anime"]["info"].charactersVoiceActors = cva_list
+            info.charactersVoiceActors = cva_list
             
             # Extract promotional videos
             promo_list = []
@@ -281,7 +229,7 @@ def get_anime_about_info(anime_id: str) -> AnimeAboutInfo:
                 promo = extract_promotional_video(promo_elem)
                 if promo:
                     promo_list.append(promo)
-            result.data["anime"]["info"].promotionalVideos = promo_list
+            info.promotionalVideos = promo_list
             
             # Extract recommended animes
             recommended = []
@@ -308,7 +256,7 @@ def get_anime_about_info(anime_id: str) -> AnimeAboutInfo:
                     
                     recommended.append(rec)
             
-            result.data["recommendedAnimes"] = recommended
+            result["data"]["recommendedAnimes"] = recommended
             
             return result
         else:
