@@ -40,8 +40,8 @@ class SpotlightAnime(BaseAnime):
 @dataclass
 class TrendingAnime(BaseAnime):
     """Trending anime with rank information."""
-    rank: int
     episodes: EpisodeInfo = field(default_factory=EpisodeInfo)
+    rank: int = 0  # Default to 0 instead of making it required
 
 @dataclass
 class RecommendedAnime(BaseAnime):
