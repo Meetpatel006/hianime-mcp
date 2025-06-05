@@ -14,6 +14,12 @@ A microservice that provides anime information through an MCP (Message Control P
 - Genre listings
 - Error handling and logging
 
+## Version History
+
+- v0.0.3: Enhanced homepage scraper with proper trending anime format and improved genre listing
+- v0.0.2: Fixed homepage scraping with complete trending anime and genres information
+- v0.0.1: Initial release with basic functionality
+
 ## Project Structure
 
 ```
@@ -42,8 +48,11 @@ python main.py
 ```
 
 The server provides the following endpoints:
-- `get_home_page`: Get homepage information
-- `get_anime_about_info`: Get detailed anime information
+- `get_home_page`: Get homepage information including spotlight animes, trending animes, and genres
+- `get_trending_anime`: Get trending anime from the homepage
+- `get_anime_genres`: Get available anime genres
+- `get_anime_recommendations`: Get anime recommendations based on current trends
+- `get_anime_about_info`: Get detailed information about a specific anime
 
 ## Testing with Client
 

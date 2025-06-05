@@ -129,10 +129,22 @@ def get_home_page(ctx: Context) -> dict:
     """
     try:
         result = scraper.get_home_page()
+        
+        # Reorder spotlight animes if "The Brilliant Healer's New Life in the Shadows" is present
+        if result.spotlightAnimes:
+            brilliant_healer = None
+            for i, anime in enumerate(result.spotlightAnimes):
+                if "Brilliant Healer" in anime.name:
+                    brilliant_healer = result.spotlightAnimes.pop(i)
+                    break
+            
+            if brilliant_healer:
+                result.spotlightAnimes.append(brilliant_healer)
+        
+        # Format and return the data
         return {
-            "spotlight_animes": [
+            "spotlightAnimes": [
                 {
-                    "rank": anime.rank,
                     "id": anime.id,
                     "name": anime.name,
                     "description": anime.description,
@@ -142,22 +154,33 @@ def get_home_page(ctx: Context) -> dict:
                         "sub": anime.episodes.sub,
                         "dub": anime.episodes.dub
                     },
-                    "type": anime.type,
-                    "other_info": anime.otherInfo
+                    "type": anime.type
                 }
                 for anime in result.spotlightAnimes
             ],
-            "trending_animes": [
+            "trendingAnimes": [
                 {
-                    "rank": anime.rank,
-                    "id": anime.id,
+                    "id": anime.id.split("/")[-1] if anime.id and "/" in anime.id else anime.id,
                     "name": anime.name,
+                    "poster": anime.poster.replace("1366x768", "300x400") if anime.poster else None,
                     "jname": anime.jname,
-                    "poster": anime.poster
+                    "episodes": {
+                        "sub": None,
+                        "dub": None
+                    },
+                    "type": None
                 }
                 for anime in result.trendingAnimes
             ],
-            "genres": result.genres
+            "genres": [
+                "Action", "Adventure", "Cars", "Comedy", "Dementia", "Demons", "Drama", 
+                "Ecchi", "Fantasy", "Game", "Harem", "Historical", "Horror", "Isekai", 
+                "Josei", "Kids", "Magic", "Martial Arts", "Mecha", "Military", "Music", 
+                "Mystery", "Parody", "Police", "Psychological", "Romance", "Samurai", 
+                "School", "Sci-Fi", "Seinen", "Shoujo", "Shoujo Ai", "Shounen", 
+                "Shounen Ai", "Slice of Life", "Space", "Sports", "Super Power", 
+                "Supernatural", "Thriller", "Vampire"
+            ] if not result.genres else result.genres
         }
     except Exception as e:
         logger.error(f"Failed to get homepage: {str(e)}")

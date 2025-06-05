@@ -31,6 +31,7 @@ async def get_home_page(ctx: Context) -> dict:
         return {
             "spotlightAnimes": [
                 {
+                    "rank": anime.rank,
                     "id": anime.id,
                     "name": anime.name,
                     "description": anime.description,
@@ -40,13 +41,15 @@ async def get_home_page(ctx: Context) -> dict:
                         "sub": anime.episodes.sub,
                         "dub": anime.episodes.dub
                     },
-                    "type": anime.type
+                    "type": anime.type,
+                    "otherInfo": anime.otherInfo
                 }
                 for anime in result.spotlightAnimes
             ],
             "trendingAnimes": [
                 {
-                    "id": anime.id,
+                    "rank": anime.rank,
+                    "id": anime.id.split("/")[-1] if anime.id and "/" in anime.id else anime.id,
                     "name": anime.name,
                     "poster": anime.poster,
                     "jname": anime.jname,
@@ -72,7 +75,8 @@ async def get_trending_anime(ctx: Context) -> dict:
         return {
             "animes": [
                 {
-                    "id": anime.id,
+                    "rank": anime.rank,
+                    "id": anime.id.split("/")[-1] if anime.id and "/" in anime.id else anime.id,
                     "name": anime.name,
                     "poster": anime.poster,
                     "jname": anime.jname,
