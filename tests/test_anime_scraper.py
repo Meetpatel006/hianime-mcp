@@ -1,4 +1,5 @@
-from scrapers.animeAboutInfo import get_anime_about_info
+# from scrapers.animeAboutInfo import get_anime_about_info
+from src.scrapers.animeAboutInfo import get_anime_about_info
 import logging
 import sys
 import cloudscraper

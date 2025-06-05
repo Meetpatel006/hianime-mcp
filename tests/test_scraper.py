@@ -3,7 +3,7 @@ import logging
 import sys
 import cloudscraper
 from bs4 import BeautifulSoup
-from scrapers.constants import SRC_BASE_URL, USER_AGENT_HEADER, ACCEPT_HEADER, ACCEPT_ENCODING_HEADER
+from src.utils.constants import SRC_BASE_URL, USER_AGENT_HEADER, ACCEPT_HEADER, ACCEPT_ENCODING_HEADER
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, 
