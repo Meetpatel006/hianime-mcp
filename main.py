@@ -32,7 +32,7 @@ async def get_home_page(ctx: Context) -> dict:
             "spotlightAnimes": [
                 {
                     "rank": anime.rank,
-                    "id": anime.id,
+                    "id": anime.id.split("/")[-1] if anime.id and "/" in anime.id else anime.id,
                     "name": anime.name,
                     "description": anime.description,
                     "poster": anime.poster,
@@ -118,7 +118,7 @@ async def get_anime_recommendations(ctx: Context) -> dict:
         
         return {
             "spotlight": {
-                "id": spotlight.id,
+                "id": spotlight.id.split("/")[-1] if spotlight.id and "/" in spotlight.id else spotlight.id,
                 "name": spotlight.name,
                 "description": spotlight.description,
                 "poster": spotlight.poster,

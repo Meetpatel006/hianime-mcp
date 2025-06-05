@@ -200,9 +200,8 @@ def get_home_page(ctx: Context) -> dict:
                 result.spotlightAnimes.append(brilliant_healer)
         
         # Format and return the data
-        return {            "spotlightAnimes": [
-                {
-                    "id": anime.id,
+        return {            "spotlightAnimes": [                {
+                    "id": anime.id.split("/")[-1] if anime.id and "/" in anime.id else anime.id,
                     "name": anime.name,
                     "description": anime.description,
                     "poster": anime.poster,
