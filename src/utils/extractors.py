@@ -15,6 +15,8 @@ class EpisodeInfo:
 
 def safe_select(element: Tag, selector: str) -> ResultSet:
     """Safely perform CSS selection with error handling."""
+    if not element:
+        return []
     try:
         return element.select(selector)
     except Exception as e:
@@ -23,6 +25,8 @@ def safe_select(element: Tag, selector: str) -> ResultSet:
 
 def safe_select_one(element: Tag, selector: str) -> Optional[Tag]:
     """Safely perform CSS selection for a single element with error handling."""
+    if not element:
+        return None
     try:
         return element.select_one(selector)
     except Exception as e:
@@ -50,29 +54,38 @@ def extract_base_anime_info(element: Tag) -> Dict[str, Any]:
     info = {}
     
     try:
-        # Extract name
-        name_elem = safe_select_one(element, ".dynamic-name")
+        # Extract name with multiple selector possibilities
+        name_elem = safe_select_one(element, ".dynamic-name, .film-name, .flw-item .film-detail .film-name")
         if name_elem:
             info["name"] = name_elem.text.strip()
-            if "data-jname" in name_elem.attrs:
+            if hasattr(name_elem, 'attrs') and "data-jname" in name_elem.attrs:
                 info["jname"] = name_elem["data-jname"].strip()
+            
+        # If no name found, try a more generic approach
+        if not info.get("name"):
+            any_title = safe_select_one(element, "a[title]")
+            if any_title and "title" in any_title.attrs:
+                info["name"] = any_title["title"].strip()
         
         # Extract poster with fallback selectors
-        poster = safe_select_one(element, ".film-poster-img, .poster-img, img")
+        poster = safe_select_one(element, ".film-poster-img, .poster-img, img, .film-poster img")
         if poster:
-            if "src" in poster.attrs:
-                info["poster"] = poster["src"].strip()
-            elif "data-src" in poster.attrs:
-                info["poster"] = poster["data-src"].strip()
+            if hasattr(poster, 'attrs'):
+                if "src" in poster.attrs:
+                    info["poster"] = poster["src"].strip()
+                elif "data-src" in poster.attrs:
+                    info["poster"] = poster["data-src"].strip()
+                elif "data-original" in poster.attrs:
+                    info["poster"] = poster["data-original"].strip()
         
         # Extract type with fallback selectors
-        type_elem = safe_select_one(element, ".fd-infor .tick-item.tick-type, .tick .type")
+        type_elem = safe_select_one(element, ".fd-infor .tick-item.tick-type, .tick .type, .fdi-type")
         if type_elem:
             info["type"] = type_elem.text.strip()
         
         # Extract ID from href
-        link = safe_select_one(element, "a")
-        if link and "href" in link.attrs:
+        link = safe_select_one(element, "a[href]")
+        if link and hasattr(link, 'attrs') and "href" in link.attrs:
             href = link["href"]
             if href.startswith("/"):
                 info["id"] = href.strip("/")
@@ -94,11 +107,17 @@ def safe_int_extract(text: Optional[str]) -> Optional[int]:
         logger.error(f"Failed to extract integer from '{text}': {str(e)}")
         return None
 
-def extract_text(element: Tag, selector: str) -> Optional[str]:
-    """Safely extract text from an element using a CSS selector."""
+def extract_text(element: Tag, selector: str = None) -> Optional[str]:
+    """Safely extract text from an element using a CSS selector.
+    If selector is None, use the element directly."""
     try:
-        found = safe_select_one(element, selector)
-        return found.text.strip() if found else None
+        if not element:
+            return None
+            
+        if selector:
+            element = safe_select_one(element, selector)
+        
+        return element.text.strip() if element else None
     except Exception as e:
         logger.error(f"Failed to extract text with selector '{selector}': {str(e)}")
         return None

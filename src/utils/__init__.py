@@ -9,7 +9,9 @@ from .extractors import (
     safe_int_extract,
     extract_text,
     extract_attribute,
-    extract_href_id
+    extract_href_id,
+    safe_select_one,
+    safe_select
 )
 
 __all__ = [
@@ -19,6 +21,8 @@ __all__ = [
     'extract_base_anime_info',
     'safe_int_extract',
     'extract_text',
+    'safe_select_one',
+    'safe_select',
     'extract_attribute',
     'extract_href_id'
 ]

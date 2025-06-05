@@ -12,7 +12,8 @@ from src.utils import (
     extract_base_anime_info,
     extract_text,
     extract_href_id,
-    safe_int_extract
+    safe_int_extract,
+    safe_select_one
 )
 from src.models import (
     EpisodeInfo,
@@ -70,19 +71,61 @@ class HomePageScraper:
                         result.spotlightAnimes.append(anime)
                         logger.debug(f"Added spotlight anime: {anime.name}")
                 else:
-                    logger.warning("Spotlight container not found")
-
-                # Extract trending animes
-                trending_container = soup.select_one("#trending-content")
-                if trending_container:
-                    for item in trending_container.select(".flw-item"):
+                    logger.warning("Spotlight container not found")                # Extract trending animes from recommended section
+                # First try specific section for trending or search directly for flw-item containers
+                trend_items = []
+                
+                # First try recommended section
+                recommended = soup.select_one(".block_area_category")
+                if recommended:
+                    trend_items = recommended.select(".flw-item")
+                    logger.debug(f"Found {len(trend_items)} anime items in recommended section")
+                
+                # If no items found, try any film_list-wrap section which contains the anime items
+                if not trend_items:
+                    film_list_wraps = soup.select(".film_list-wrap")
+                    for film_wrap in film_list_wraps:
+                        items = film_wrap.select(".flw-item")
+                        if items:
+                            trend_items = items
+                            logger.debug(f"Found {len(trend_items)} anime items in film_list-wrap")
+                            break
+                
+                # If still no items, try the most popular section as a fallback
+                if not trend_items:
+                    popular = soup.select_one(".block_area-realtime")
+                    if popular:
+                        trend_items = popular.select(".flw-item")
+                        logger.debug(f"Found {len(trend_items)} anime items in popular section")
+                
+                # Process the found items
+                if trend_items:
+                    for i, item in enumerate(trend_items):
+                        # Use position as rank if no specific rank is found
                         rank_text = extract_text(item.select_one(".number"), "")
-                        rank = safe_int_extract(rank_text) if rank_text else 0
+                        rank = safe_int_extract(rank_text) if rank_text else i + 1
                         
                         anime_info = extract_base_anime_info(item)
+                        # If ID wasn't found correctly, try to extract from film-detail link
+                        if not anime_info.get("id"):
+                            film_detail_link = safe_select_one(item, ".film-detail a[href]")
+                            if film_detail_link and "href" in film_detail_link.attrs:
+                                href = film_detail_link["href"]
+                                if href.startswith("/"):
+                                    anime_info["id"] = href.strip("/")
+                          # Clean up the ID to remove "watch/" prefix and any query parameters
+                        anime_id = anime_info.get("id", "")
+                        if anime_id:
+                            # Remove "watch/" prefix if present
+                            if anime_id.startswith("watch/"):
+                                anime_id = anime_id[6:]
+                            # Remove query parameters
+                            if "?" in anime_id:
+                                anime_id = anime_id.split("?")[0]
+                        
                         anime = TrendingAnime(
                             rank=rank,
-                            id=anime_info.get("id"),
+                            id=anime_id,
                             name=anime_info.get("name"),
                             jname=anime_info.get("jname"),
                             poster=anime_info.get("poster"),
@@ -90,18 +133,33 @@ class HomePageScraper:
                             episodes=EpisodeInfo(**vars(extract_episodes(item)))
                         )
                         
-                        result.trendingAnimes.append(anime)
-                        logger.debug(f"Added trending anime: {anime.name}")
+                        if anime.name:  # Only add if we have a name
+                            result.trendingAnimes.append(anime)
+                            logger.debug(f"Added trending anime: {anime.name}")
                 else:
-                    logger.warning("Trending container not found")
-
-                # Extract genres
-                genre_container = soup.select_one(".block_area-genres")
+                    logger.warning("No trending anime items found in any section")                # Extract genres from sidebar menu
+                genre_container = soup.select_one("#sidebar_subs_genre")
+                extracted_genres = []
+                
                 if genre_container:
-                    result.genres = [genre.text.strip() for genre in genre_container.select(".genre-list a")]
-                    logger.debug(f"Extracted {len(result.genres)} genres")
+                    extracted_genres = [genre.text.strip() for genre in genre_container.select(".nav-link") if genre.text.strip()]
+                    logger.debug(f"Extracted {len(extracted_genres)} genres")
+                
+                # Only use default genres if we couldn't extract any
+                if extracted_genres:
+                    result.genres = extracted_genres
                 else:
-                    logger.warning("Genre container not found")
+                    # Fallback to hardcoded genres if not found in sidebar
+                    result.genres = [
+                        "Action", "Adventure", "Cars", "Comedy", "Dementia", "Demons", "Drama", 
+                        "Ecchi", "Fantasy", "Game", "Harem", "Historical", "Horror", "Isekai", 
+                        "Josei", "Kids", "Magic", "Martial Arts", "Mecha", "Military", "Music", 
+                        "Mystery", "Parody", "Police", "Psychological", "Romance", "Samurai", 
+                        "School", "Sci-Fi", "Seinen", "Shoujo", "Shoujo Ai", "Shounen", 
+                        "Shounen Ai", "Slice of Life", "Space", "Sports", "Super Power", 
+                        "Supernatural", "Thriller", "Vampire"
+                    ]
+                    logger.warning("No genres extracted from HTML, using default genres")
 
                 return result
 
@@ -171,16 +229,7 @@ def get_home_page(ctx: Context) -> dict:
                     "type": None
                 }
                 for anime in result.trendingAnimes
-            ],
-            "genres": [
-                "Action", "Adventure", "Cars", "Comedy", "Dementia", "Demons", "Drama", 
-                "Ecchi", "Fantasy", "Game", "Harem", "Historical", "Horror", "Isekai", 
-                "Josei", "Kids", "Magic", "Martial Arts", "Mecha", "Military", "Music", 
-                "Mystery", "Parody", "Police", "Psychological", "Romance", "Samurai", 
-                "School", "Sci-Fi", "Seinen", "Shoujo", "Shoujo Ai", "Shounen", 
-                "Shounen Ai", "Slice of Life", "Space", "Sports", "Super Power", 
-                "Supernatural", "Thriller", "Vampire"
-            ] if not result.genres else result.genres
+            ],            "genres": result.genres
         }
     except Exception as e:
         logger.error(f"Failed to get homepage: {str(e)}")
