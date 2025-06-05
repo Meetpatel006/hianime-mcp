@@ -42,7 +42,12 @@ async def get_home_page(ctx: Context) -> dict:
                         "dub": anime.episodes.dub
                     },
                     "type": anime.type,
-                    "otherInfo": anime.otherInfo
+                    "otherInfo": {
+                        "type": anime.otherInfo[0] if len(anime.otherInfo) > 0 else None,
+                        "duration": anime.otherInfo[1] if len(anime.otherInfo) > 1 else None,
+                        "releaseDate": anime.otherInfo[2] if len(anime.otherInfo) > 2 else None,
+                        "quality": anime.otherInfo[3] if len(anime.otherInfo) > 3 else None
+                    }
                 }
                 for anime in result.spotlightAnimes
             ],
@@ -122,7 +127,13 @@ async def get_anime_recommendations(ctx: Context) -> dict:
                     "sub": spotlight.episodes.sub,
                     "dub": spotlight.episodes.dub
                 },
-                "type": spotlight.type
+                "type": spotlight.type,
+                "otherInfo": {
+                    "type": spotlight.otherInfo[0] if spotlight.otherInfo and len(spotlight.otherInfo) > 0 else None,
+                    "duration": spotlight.otherInfo[1] if spotlight.otherInfo and len(spotlight.otherInfo) > 1 else None,
+                    "releaseDate": spotlight.otherInfo[2] if spotlight.otherInfo and len(spotlight.otherInfo) > 2 else None,
+                    "quality": spotlight.otherInfo[3] if spotlight.otherInfo and len(spotlight.otherInfo) > 3 else None
+                }
             } if spotlight else None,
             "trending": {
                 "id": trending.id,

@@ -16,6 +16,7 @@ A microservice that provides anime information through an MCP (Message Control P
 
 ## Version History
 
+- v0.0.5: Improved otherInfo object structure with meaningful labels instead of numerical indices
 - v0.0.4: Fixed trending anime extraction and genre listing from different HTML sections with improved error handling
 - v0.0.3: Enhanced homepage scraper with proper trending anime format and improved genre listing
 - v0.0.2: Fixed homepage scraping with complete trending anime and genres information

@@ -200,8 +200,7 @@ def get_home_page(ctx: Context) -> dict:
                 result.spotlightAnimes.append(brilliant_healer)
         
         # Format and return the data
-        return {
-            "spotlightAnimes": [
+        return {            "spotlightAnimes": [
                 {
                     "id": anime.id,
                     "name": anime.name,
@@ -212,7 +211,13 @@ def get_home_page(ctx: Context) -> dict:
                         "sub": anime.episodes.sub,
                         "dub": anime.episodes.dub
                     },
-                    "type": anime.type
+                    "type": anime.type,
+                    "otherInfo": {
+                        "type": anime.otherInfo[0] if len(anime.otherInfo) > 0 else None,
+                        "duration": anime.otherInfo[1] if len(anime.otherInfo) > 1 else None,
+                        "releaseDate": anime.otherInfo[2] if len(anime.otherInfo) > 2 else None,
+                        "quality": anime.otherInfo[3] if len(anime.otherInfo) > 3 else None
+                    }
                 }
                 for anime in result.spotlightAnimes
             ],
