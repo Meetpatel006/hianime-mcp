@@ -34,7 +34,7 @@ def get_anime_info(anime_id):
         'Upgrade-Insecure-Requests': '1'
     })
     
-    url = f"https://hianimez.to/{anime_id}"
+    url = f"https://hianime.sx/{anime_id}"
     logger.debug(f"Fetching URL: {url}")
     
     try:
