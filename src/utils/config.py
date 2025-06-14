@@ -20,6 +20,12 @@ class Config:
     # File paths
     LOG_DIR = "logs"
     DEBUG_DIR = "debug"
+
+    # Logging settings
+    LOG_LEVEL = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    LOG_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    LOG_BACKUP_COUNT = 3  # Number of backup files to keep
+    LOG_RETENTION_DAYS = 5  # Days to keep old log files
     
     @classmethod
     def get_headers(cls):
