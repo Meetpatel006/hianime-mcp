@@ -1,10 +1,10 @@
 """Test the otherInfo structure in API responses."""
 import asyncio
 import json
-from mcp.server.fastmcp import Context
+from src.mcp.server.fastmcp import Context
 
 from src.scrapers.homePages import HomePageScraper
-import main  # Import the main module with API functions
+from src import main  # Import the main module with API functions
 
 async def test_api_otherinfo():
     """Test the structure of otherInfo in API responses."""

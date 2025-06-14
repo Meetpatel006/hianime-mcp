@@ -1,7 +1,7 @@
 """Test client for the anime MCP server."""
 import asyncio
 from typing import Any, Dict
-from mcp.client import Client
+from src.client import Client
 
 async def test_anime_info():
     """Test fetching anime information."""
