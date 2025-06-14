@@ -3,17 +3,26 @@ import os
 import sys
 import asyncio
 from mcp.server.fastmcp import FastMCP, Context
+from starlette.responses import JSONResponse
 
 from src.management import get_logger
 from src.scrapers import HomePageScraper
 from src.scrapers.animeAboutInfo import get_anime_about_info as scrape_anime_about_info
 from src.utils.config import Config
 
+from starlette.applications import Starlette
+from starlette.routing import Mount, Host
+
 # Configure logging
 logger = get_logger("AnimeMCP")
 
 # Create an MCP server
 mcp = FastMCP("Anime Assistant")
+app = Starlette(
+    routes=[
+        Mount('/', app=mcp.sse_app()),
+    ]
+)
 
 # Initialize the Aniwatch scraper
 try:
@@ -252,14 +261,22 @@ async def get_anime_about_info(ctx: Context, anime_id: str = "") -> dict:
             "success": False,
             "error": str(e)
         }
+    
+# Use our existing Starlette app with the MCP SSE app mounted at the root path
 
+# Health check endpoint
+@app.route("/health")
+async def health_check(request):
+    return JSONResponse({"status": "healthy", "service": "anime-mcp"})
+
+# Start the server when this script is run directly
 if __name__ == "__main__":
-    try:
-        logger.info("Starting MCP server...")
-        # Apply configuration
-        if Config.DEBUG_MODE:
-            logger.info("Running in debug mode")
-        mcp.run()
-    except Exception as e:
-        logger.error(f"Failed to run server: {str(e)}")
-        sys.exit(1)
+    import uvicorn
+    from starlette.responses import JSONResponse
+    
+    # Log the startup
+    logger.info("Starting Anime MCP server...")
+    
+    # Run the app with uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+

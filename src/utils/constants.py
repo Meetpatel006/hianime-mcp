@@ -3,7 +3,7 @@ USER_AGENT_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 ACCEPT_HEADER = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
 
 # previously zoro.to -> aniwatch.to -> aniwatchtv.to -> hianimez.to
-DOMAIN = "hianimez.to"
+DOMAIN = "hianime.sx"
 
 SRC_BASE_URL = f"https://{DOMAIN}"
 SRC_AJAX_URL = f"{SRC_BASE_URL}/ajax"
