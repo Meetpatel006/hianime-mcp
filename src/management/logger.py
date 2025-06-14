@@ -41,12 +41,14 @@ class LogManager:
         file_handler = RotatingFileHandler(
             cls._log_filename,
             maxBytes=Config.LOG_MAX_FILE_SIZE,
-            backupCount=Config.LOG_BACKUP_COUNT
+            backupCount=Config.LOG_BACKUP_COUNT,
+            encoding='utf-8'  # Ensure UTF-8 encoding for file handler
         )
         file_handler.setLevel(logging.DEBUG)
 
-        # Console handler
-        console_handler = logging.StreamHandler()
+        # Console handler with UTF-8 encoding
+        import sys
+        console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(getattr(logging, Config.LOG_LEVEL.upper()))
 
         # Formatting

@@ -48,14 +48,19 @@ def test_anime_scraper():
         
         # Print key information
         logger.info("\nResult summary:")
-        logger.info(f"Anime ID: {result.anime['info'].id}")
-        logger.info(f"Anime Name: {result.anime['info'].name}")
-        logger.info(f"Description: {result.anime['info'].description[:100] if result.anime['info'].description else None}")
-        logger.info(f"Stats: {result.anime['info'].stats}")
-        logger.info(f"Number of seasons: {len(result.seasons)}")
-        logger.info(f"Number of related animes: {len(result.relatedAnimes)}")
-        logger.info(f"Number of popular animes: {len(result.mostPopularAnimes)}")
-        logger.info(f"Number of recommended animes: {len(result.recommendedAnimes)}")
+        if result and result.get("success"):
+            data = result["data"]
+            anime_info = data["anime"]["info"]
+            logger.info(f"Anime ID: {anime_info.id}")
+            logger.info(f"Anime Name: {anime_info.name}")
+            logger.info(f"Description: {anime_info.description[:100] if anime_info.description else None}")
+            logger.info(f"Stats: {anime_info.stats}")
+            logger.info(f"Number of seasons: {len(data['seasons'])}")
+            logger.info(f"Number of related animes: {len(data['relatedAnimes'])}")
+            logger.info(f"Number of popular animes: {len(data['mostPopularAnimes'])}")
+            logger.info(f"Number of recommended animes: {len(data['recommendedAnimes'])}")
+        else:
+            logger.error("Failed to get anime information or result was unsuccessful")
         
         return result
         

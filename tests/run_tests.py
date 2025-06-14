@@ -6,10 +6,11 @@ from typing import Callable, Coroutine
 
 TEST_MODULES = [
     "test_anime_scraper",
-    "test_api_otherinfo", 
+    "test_api_otherinfo",
     "test_client",
     "test_extraction",
     "test_scraper",
+    "test_home_scraper",
     "test_otherinfo",
     "test_spotlight_id"
 ]
