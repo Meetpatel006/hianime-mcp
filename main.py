@@ -164,88 +164,75 @@ async def get_anime_recommendations(ctx: Context) -> dict:
 @mcp.tool()
 async def get_anime_about_info(ctx: Context, anime_id: str = "") -> dict:
     """Get detailed information about an anime."""
-    logger.info(f"Received request for anime ID: '{anime_id}'")
-    logger.debug(f"Calling scrape_anime_about_info with ID: '{anime_id}'")
-    result = scrape_anime_about_info(anime_id)
-    print(result)
-    logger.info(result)
-
-    #     logger.debug(f"Scraping result type: {type(result)}")
-    #     logger.debug(f"Scraping result is None: {result is None}")
-
-    # try:
-    #     logger.info(f"Received request for anime ID: '{anime_id}'")
-
-    #     if not anime_id:
-    #         logger.error("Empty anime_id received")
-    #         return {
-    #             "success": False,
-    #             "error": "anime_id is required"
-    #         }
-
-    #     logger.debug(f"Calling scrape_anime_about_info with ID: '{anime_id}'")
-    #     result = scrape_anime_about_info(anime_id)
-
-    #     logger.debug(f"Scraping result type: {type(result)}")
-    #     logger.debug(f"Scraping result is None: {result is None}")
-
-    #     # Ensure we have a valid result
-    #     if not result:
-    #         logger.error(f"No result from scraping for anime_id: {anime_id}")
-    #         return {
-    #             "success": False,
-    #             "error": "Failed to fetch anime information - no data returned"
-    #         }
+    try:
+        logger.info(f"Received request for anime ID: '{anime_id}'")
+        logger.debug(f"Calling scrape_anime_about_info with ID: '{anime_id}'")
         
-    #     # Check if result is already in the expected format
-    #     if isinstance(result, dict):
-    #         # If result already has success key, check if it's successful
-    #         if "success" in result:
-    #             if result["success"] is False and "error" in result:
-    #                 # Log the specific error from the scraper
-    #                 logger.error(f"Scraper error: {result['error']}")
-    #                 return result
-    #             return result
-            
-    #         # If result has data key, it's properly formatted
-    #         if "data" in result:
-    #             # Make sure success is set to true
-    #             result["success"] = True
-    #             return result
-            
-    #         # If result has error key but no success key, it's an error result
-    #         if "error" in result:
-    #             result["success"] = False
-    #             logger.error(f"Scraper error: {result['error']}")
-    #             return result
-            
-    #         # If result doesn't have expected structure, return error
-    #         logger.error(f"Invalid result structure from scraping: result keys={list(result.keys())}")
-    #         return {
-    #             "success": False,
-    #             "error": "Invalid data structure returned from scraper"
-    #         }
+        if not anime_id:
+            logger.error("Empty anime_id received")
+            return {
+                "success": False,
+                "error": "anime_id is required"
+            }
+
+        result = scrape_anime_about_info(anime_id)
+
+        # Ensure we have a valid result
+        if not result:
+            logger.error(f"No result from scraping for anime_id: {anime_id}")
+            return {
+                "success": False,
+                "error": "Failed to fetch anime information - no data returned"
+            }
         
-    #     # If result is not a dict, return error
-    #     logger.error(f"Invalid result type from scraping: {type(result)}")
-    #     return {
-    #         "success": False,
-    #         "error": "Invalid data type returned from scraper"
-    #     }
+        # Check if result is already in the expected format
+        if isinstance(result, dict):
+            # If result already has success key, check if it's successful
+            if "success" in result:
+                if result["success"] is False and "error" in result:
+                    # Log the specific error from the scraper
+                    logger.error(f"Scraper error: {result['error']}")
+                    return result
+                return result
             
-    # except Exception as e:
-    #     logger.error(f"Error getting anime about info: {str(e)}")
-    #     return {
-    #         "success": False,
-    #         "error": str(e)
-    #     }
-    
+            # If result has data key, it's properly formatted
+            if "data" in result:
+                # Make sure success is set to true
+                result["success"] = True
+                return result
+            
+            # If result has error key but no success key, it's an error result
+            if "error" in result:
+                result["success"] = False
+                logger.error(f"Scraper error: {result['error']}")
+                return result
+            
+            # If result doesn't have expected structure, return error
+            logger.error(f"Invalid result structure from scraping: result keys={list(result.keys())}")
+            return {
+                "success": False,
+                "error": "Invalid data structure returned from scraper"
+            }
+        
+        # If result is not a dict, return error
+        logger.error(f"Invalid result type from scraping: {type(result)}")
+        return {
+            "success": False,
+            "error": "Invalid data type returned from scraper"
+        }
+            
+    except Exception as e:
+        logger.error(f"Error getting anime about info: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 # mcp.run()
 
 # Start the server when this script is run directly
 if __name__ == "__main__":
     import uvicorn
-    from starlette.responses import JSONResponse
     
     # Log the startup
     logger.info("Starting Anime MCP server...")
