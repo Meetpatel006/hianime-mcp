@@ -15,16 +15,13 @@ from src.utils import (
     extract_base_anime_info,
     extract_text,
     extract_href_id,
-    safe_int_extract,
-    safe_select_one
+    safe_int_extract
 )
 from src.models import (
     EpisodeInfo,
-    Anime,
     SpotlightAnime,
     TrendingAnime,
-    HomePage,
-    Top10Anime
+    HomePage
 )
 
 # Configure logging
@@ -43,15 +40,6 @@ class HomePageScraper:
             }
         )
         self.session.headers.update(Config.get_headers())
-        # Add additional headers for better compatibility
-        self.session.headers.update({
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-        })
 
     def _process_html_content(self, response) -> str:
         """Process and decompress HTML content from response."""
@@ -337,21 +325,6 @@ class HomePageScraper:
                 if extracted_genres:
                     logger.debug(f"Extracted {len(extracted_genres)} genres with selector: {selector}")
                     break
-
-        # Fallback to default genres if none found
-        if not extracted_genres:
-            extracted_genres = [
-                "Action", "Adventure", "Cars", "Comedy", "Dementia", "Demons", "Drama",
-                "Ecchi", "Fantasy", "Game", "Harem", "Historical", "Horror", "Isekai",
-                "Josei", "Kids", "Magic", "Martial Arts", "Mecha", "Military", "Music",
-                "Mystery", "Parody", "Police", "Psychological", "Romance", "Samurai",
-                "School", "Sci-Fi", "Seinen", "Shoujo", "Shoujo Ai", "Shounen",
-                "Shounen Ai", "Slice of Life", "Space", "Sports", "Super Power",
-                "Supernatural", "Thriller", "Vampire", "More"
-            ]
-            logger.warning("No genres extracted from HTML, using default genres")
-
-        return extracted_genres
 
     def get_home_page(self) -> HomePage:
         try:
