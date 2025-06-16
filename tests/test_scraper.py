@@ -1,8 +1,13 @@
 ﻿import requests
 import logging
 import sys
+import os
 import cloudscraper
 from bs4 import BeautifulSoup
+
+# Add the src directory to the path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 from src.utils.constants import SRC_BASE_URL, USER_AGENT_HEADER, ACCEPT_HEADER, ACCEPT_ENCODING_HEADER
 
 # Set up logging
@@ -44,8 +49,22 @@ try:
         sync_data = body.find("script", id="syncData")
         print(f"Found syncData: {sync_data is not None}")
         
-        ani_detail = soup.select_one("#ani_detail .container .anis-content")
-        print(f"Found anime detail content: {ani_detail is not None}")
+        # Test both old and new selectors
+        ani_detail_old = soup.select_one("#ani_detail .container .anis-content")
+        ani_detail_new = soup.select_one("#ani_detail .anis-content")
+        print(f"Found anime detail content (old selector): {ani_detail_old is not None}")
+        print(f"Found anime detail content (new selector): {ani_detail_new is not None}")
+
+        if ani_detail_new:
+            # Test extracting some basic info
+            name_elem = ani_detail_new.select_one(".anisc-detail .film-name.dynamic-name")
+            print(f"Found anime name: {name_elem.text.strip() if name_elem else 'Not found'}")
+
+            desc_elem = ani_detail_new.select_one(".anisc-detail .film-description .text")
+            print(f"Found description: {'Yes' if desc_elem else 'No'}")
+
+            genres = ani_detail_new.select(".anisc-info .item-list a")
+            print(f"Found genres: {[g.text.strip() for g in genres[:3]]}...")  # Show first 3
     
 except Exception as e:
     print(f"Error occurred: {type(e).__name__}: {e}")
