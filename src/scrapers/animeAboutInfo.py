@@ -146,63 +146,53 @@ def get_anime_about_info(anime_id: str) -> Optional[Dict[str, Union[Dict, bool]]
         # Extract main content using a more robust approach
         logger.debug("Attempting to find main content section")
         
-        # First, try to find the ani_detail container
-        ani_detail = soup.select_one("#ani_detail")
-        if ani_detail:
-            logger.debug("Found #ani_detail section")
-            
-            # Try to find the container > anis-content structure (most common)
-            container = ani_detail.select_one(".container")
-            if container:
-                content = container.select_one(".anis-content")
-                if content:
-                    logger.debug("Found content with selector: #ani_detail .container .anis-content")
-                else:
-                    # If not found, try to find anis-content directly in ani_detail
-                    content = ani_detail.select_one(".anis-content")
-                    if content:
-                        logger.debug("Found content with selector: #ani_detail .anis-content")
-            else:
-                # Try ani_detail-stage > anis-content
-                ani_detail_stage = ani_detail.select_one(".ani_detail-stage")
-                if ani_detail_stage:
-                    content = ani_detail_stage.select_one(".anis-content")
-                    if content:
-                        logger.debug("Found content with selector: #ani_detail .ani_detail-stage .anis-content")
-                    else:
-                        # Try to find container in ani_detail-stage
-                        container = ani_detail_stage.select_one(".container")
-                        if container:
-                            content = container.select_one(".anis-content")
-                            if content:
-                                logger.debug("Found content with selector: #ani_detail .ani_detail-stage .container .anis-content")
-                
-                # If still not found, try to find anis-content directly in ani_detail
-                if not content:
-                    content = ani_detail.select_one(".anis-content")
-                    if content:
-                        logger.debug("Found content with selector: #ani_detail .anis-content")
+        # First, try the most reliable selector from test_advanced.py
+        content = soup.select_one("#ani_detail .container .anis-content")
+        if content:
+            logger.debug("Found content with selector: #ani_detail .container .anis-content")
         else:
-            # If ani_detail not found, try to find anis-content directly
-            content = soup.select_one(".anis-content")
-            if content:
-                logger.debug("Found content with selector: .anis-content")
-            
-        # If still not found, try a more aggressive approach
-        if not content:
-            logger.debug("Standard selectors failed, trying more aggressive approach")
-            
-            # Try to find any element that might contain anime info
-            film_poster = soup.select_one(".film-poster")
-            if film_poster:
-                # Walk up the DOM to find a suitable container
-                parent = film_poster.parent
-                while parent and parent.name != 'body':
-                    if 'anis-content' in parent.get('class', []):
-                        content = parent
-                        logger.debug("Found content by walking up from .film-poster")
-                        break
-                    parent = parent.parent
+            logger.debug("Selector #ani_detail .container .anis-content failed. Trying other fallbacks.")
+            # Fallback strategies if the primary selector fails
+            ani_detail = soup.select_one("#ani_detail")
+            if ani_detail:
+                logger.debug("Found #ani_detail section. Trying child selectors.")
+                # Try to find anis-content directly in ani_detail
+                content = ani_detail.select_one(".anis-content")
+                if content:
+                    logger.debug("Found content with selector: #ani_detail .anis-content")
+                else:
+                    # Try ani_detail-stage > anis-content
+                    ani_detail_stage = ani_detail.select_one(".ani_detail-stage")
+                    if ani_detail_stage:
+                        content = ani_detail_stage.select_one(".anis-content")
+                        if content:
+                            logger.debug("Found content with selector: #ani_detail .ani_detail-stage .anis-content")
+                        else:
+                            # Try to find container in ani_detail-stage then anis-content
+                            container = ani_detail_stage.select_one(".container")
+                            if container:
+                                content = container.select_one(".anis-content")
+                                if content:
+                                    logger.debug("Found content with selector: #ani_detail .ani_detail-stage .container .anis-content")
+            else:
+                # If ani_detail not found, try to find anis-content directly in the soup
+                logger.debug("#ani_detail section not found. Trying .anis-content globally.")
+                content = soup.select_one(".anis-content")
+                if content:
+                    logger.debug("Found content with global selector: .anis-content")
+
+            # If still not found, try the aggressive approach (walking up from .film-poster)
+            if not content:
+                logger.debug("Standard selectors failed, trying more aggressive approach by walking up from .film-poster")
+                film_poster = soup.select_one(".film-poster")
+                if film_poster:
+                    parent = film_poster.parent
+                    while parent and parent.name != 'body':
+                        if 'anis-content' in parent.get('class', []):
+                            content = parent
+                            logger.debug("Found content by walking up from .film-poster")
+                            break
+                        parent = parent.parent
 
         if content:
             # Basic info
@@ -499,13 +489,54 @@ def get_anime_about_info(anime_id: str) -> Optional[Dict[str, Union[Dict, bool]]
                 logger.debug(f"Could not save debug HTML: {e}")
             
             # Return a structured error result instead of None
+            # Enhanced error message
+            error_message = "Could not find anime content section using any known selectors."
+            # Check if the primary selector was specifically the point of failure earlier
+            # (This check is implicitly handled by the refined selector logic and logging)
+            # The logging already shows the sequence of attempts.
+            # We can make the returned error message more direct.
+
+            # If the first selector tried was the specific one from test_advanced.py and it failed,
+            # we can reflect this. However, the previous step already made that the first attempt.
+            # The existing logs will show "Selector #ani_detail .container .anis-content failed."
+            # So, the generic message is appropriate here as it means ALL attempts failed.
+
             return {
                 "success": False,
-                "error": "Could not find anime content section",
+                "error": error_message, # Keep it general as all selectors failed
                 "anime_id": anime_id,
-                "url": anime_url
+                "url": anime_url,
+                "debug_html_file": f"debug_anime_{anime_id.replace('/', '_')}_error.html" # Add filename to output
             }
         
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
         raise
+
+if __name__ == "__main__":
+    # Test with a known anime ID.
+    # Replace with an ID that was previously failing if known,
+    # otherwise use a common one.
+    test_anime_id = "attack-on-titan-112"  # Example ID
+    logger.info(f"Attempting to fetch info for anime ID: {test_anime_id}")
+
+    # Ensure logger is configured for standalone execution
+    from src.management import setup_logging
+    setup_logging() # Call this if not already configured globally for standalone script run
+
+    try:
+        info = get_anime_about_info(test_anime_id)
+        if info and info.get("success"):
+            logger.info(f"Successfully fetched data for {test_anime_id}:")
+            import json
+            print(json.dumps(info, indent=2))
+        elif info:
+            logger.error(f"Failed to fetch data for {test_anime_id}:")
+            import json
+            print(json.dumps(info, indent=2))
+        else:
+            logger.error(f"No information returned for {test_anime_id} (function returned None).")
+    except ValueError as ve:
+        logger.error(f"ValueError during test: {ve}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred during test: {e}", exc_info=True)
