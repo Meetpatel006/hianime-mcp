@@ -55,6 +55,10 @@ The server provides the following endpoints:
 - `get_anime_genres`: Get available anime genres
 - `get_anime_recommendations`: Get anime recommendations based on current trends
 - `get_anime_about_info`: Get detailed information about a specific anime
+- `get_anime_episode_sources`: Get streaming sources for anime episodes
+  - Parameters: `episode_id` (required, format: "anime-title?ep=12345"), `server` (optional, default: "VidStreaming"), `category` (optional, default: "sub")
+  - Supported servers: VidStreaming, VidCloud, StreamSB, StreamTape
+  - Supported categories: sub, dub
 
 ## Testing with Client
 

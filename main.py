@@ -8,6 +8,7 @@ from starlette.responses import JSONResponse
 from src.management import get_logger
 from src.scrapers import HomePageScraper
 from src.scrapers.animeAboutInfo import get_anime_about_info as scrape_anime_about_info
+from src.scrapers.animeEpisodeSrcs import get_anime_episode_sources as scrape_anime_episode_sources
 from src.utils.config import Config
 
 from starlette.applications import Starlette
@@ -223,6 +224,45 @@ async def get_anime_about_info(ctx: Context, anime_id: str = "") -> dict:
             
     except Exception as e:
         logger.error(f"Error getting anime about info: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@mcp.tool()
+async def get_anime_episode_sources(ctx: Context, episode_id: str = "", server: str = "VidStreaming", category: str = "sub") -> dict:
+    """Get anime episode streaming sources."""
+    try:
+        logger.info(f"Received request for episode sources: episode_id='{episode_id}', server='{server}', category='{category}'")
+
+        if not episode_id:
+            logger.error("Empty episode_id received")
+            return {
+                "success": False,
+                "error": "episode_id is required"
+            }
+
+        if "?ep=" not in episode_id:
+            logger.error(f"Invalid episode_id format: {episode_id}")
+            return {
+                "success": False,
+                "error": "episode_id must be in format 'anime-title?ep=12345'"
+            }
+
+        result = await scrape_anime_episode_sources(episode_id, server, category)
+
+        if not result:
+            logger.error(f"No result from scraping for episode_id: {episode_id}")
+            return {
+                "success": False,
+                "error": "Failed to fetch episode sources - no data returned"
+            }
+
+        logger.info(f"Successfully retrieved episode sources for {episode_id}")
+        return result
+
+    except Exception as e:
+        logger.error(f"Error getting anime episode sources: {str(e)}")
         return {
             "success": False,
             "error": str(e)
