@@ -1,6 +1,6 @@
 """Models for anime data structures."""
 
-from .episode import EpisodeInfo, EpisodeStats
+from .episode import EpisodeInfo, EpisodeStats, EpisodeServer, ScrapedEpisodeServers
 from .character import Character, VoiceActor, CharacterVoiceActor
 from .media import (
     PromotionalVideo,
@@ -22,6 +22,8 @@ __all__ = [
     # Episode models
     'EpisodeInfo',
     'EpisodeStats',
+    'EpisodeServer',
+    'ScrapedEpisodeServers',
     
     # Character models
     'Character',

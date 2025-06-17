@@ -1,6 +1,6 @@
 """Episode information models."""
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 @dataclass
 class EpisodeInfo:
@@ -18,3 +18,19 @@ class EpisodeStats:
     total: Optional[int] = None
     current: Optional[int] = None
     last_updated: Optional[str] = None
+
+@dataclass
+class EpisodeServer:
+    """Information about an episode server."""
+    serverName: str
+    serverId: Optional[int] = None
+    hianimeid: Optional[str] = None
+
+@dataclass
+class ScrapedEpisodeServers:
+    """Scraped episode servers data structure."""
+    sub: List[EpisodeServer] = field(default_factory=list)
+    dub: List[EpisodeServer] = field(default_factory=list)
+    raw: List[EpisodeServer] = field(default_factory=list)
+    episodeId: str = ""
+    episodeNo: int = 0

@@ -9,6 +9,7 @@ from src.management import get_logger
 from src.scrapers import HomePageScraper
 from src.scrapers.animeAboutInfo import get_anime_about_info as scrape_anime_about_info
 from src.scrapers.animeEpisodeSrcs import get_anime_episode_sources as scrape_anime_episode_sources
+from src.scrapers.animeEpisodeServers import get_episode_servers as scrape_episode_servers
 from src.utils.config import Config
 
 from starlette.applications import Starlette
@@ -280,6 +281,105 @@ async def get_anime_episode_sources(ctx: Context, episode_id: str = "", server: 
         }
     except Exception as e:
         logger.error(f"Error getting anime episode sources: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@mcp.tool()
+async def get_episode_servers(ctx: Context, episode_id: str = "") -> dict:
+    """Get available servers for an anime episode."""
+    try:
+        logger.info(f"Received request for episode servers: episode_id='{episode_id}'")
+
+        if not episode_id:
+            logger.error("Empty episode_id received")
+            return {
+                "success": False,
+                "error": "episode_id is required"
+            }
+
+        if "?ep=" not in episode_id:
+            logger.error(f"Invalid episode_id format: {episode_id}")
+            return {
+                "success": False,
+                "error": "episode_id must be in format 'anime-title?ep=12345'"
+            }
+
+        result = scrape_episode_servers(episode_id)
+        logger.info(f"Successfully retrieved episode servers for {episode_id}")
+
+        # Convert dataclass to dict for JSON serialization
+        return {
+            "success": True,
+            "data": {
+                "sub": [{"serverName": server.serverName, "serverId": server.serverId} for server in result.sub],
+                "dub": [{"serverName": server.serverName, "serverId": server.serverId} for server in result.dub],
+                "raw": [{"serverName": server.serverName, "serverId": server.serverId} for server in result.raw],
+                "episodeId": result.episodeId,
+                "episodeNo": result.episodeNo
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting episode servers: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@mcp.tool()
+async def get_all_episode_servers(ctx: Context, episode_id: str = "", category: str = "sub") -> dict:
+    """Get all available servers for an anime episode in a specific category."""
+    try:
+        logger.info(f"Received request for all episode servers: episode_id='{episode_id}', category='{category}'")
+
+        if not episode_id:
+            logger.error("Empty episode_id received")
+            return {
+                "success": False,
+                "error": "episode_id is required"
+            }
+
+        if "?ep=" not in episode_id:
+            logger.error(f"Invalid episode_id format: {episode_id}")
+            return {
+                "success": False,
+                "error": "episode_id must be in format 'anime-title?ep=12345'"
+            }
+
+        if category not in ["sub", "dub", "raw"]:
+            logger.error(f"Invalid category: {category}")
+            return {
+                "success": False,
+                "error": "category must be one of: sub, dub, raw"
+            }
+
+        result = scrape_episode_servers(episode_id)
+        logger.info(f"Successfully retrieved episode servers for {episode_id}")
+
+        # Get servers for the specified category
+        if category == "sub":
+            servers = result.sub
+        elif category == "dub":
+            servers = result.dub
+        else:  # raw
+            servers = result.raw
+
+        # Convert dataclass to dict for JSON serialization
+        return {
+            "success": True,
+            "data": {
+                "episodeId": result.episodeId,
+                "episodeNo": result.episodeNo,
+                "category": category,
+                "servers": [{"serverName": server.serverName, "serverId": server.serverId} for server in servers],
+                "totalServers": len(servers)
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting all episode servers: {str(e)}")
         return {
             "success": False,
             "error": str(e)
