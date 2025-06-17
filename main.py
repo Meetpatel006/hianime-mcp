@@ -261,7 +261,7 @@ async def get_anime_episode_sources(ctx: Context, episode_id: str = "", category
         try:
             result = await asyncio.wait_for(
                 scrape_all_anime_episode_sources(episode_id, category),
-                timeout=120.0  # 120 second timeout for multiple servers
+                timeout=90.0  # 90 second timeout for multiple servers (45s per server * 2 servers max in parallel)
             )
         except asyncio.TimeoutError:
             logger.error(f"Timeout while fetching episode sources for {episode_id}")
@@ -282,10 +282,8 @@ async def get_anime_episode_sources(ctx: Context, episode_id: str = "", category
 
     except asyncio.CancelledError:
         logger.warning(f"Request cancelled for episode_id: {episode_id}")
-        return {
-            "success": False,
-            "error": "Request was cancelled"
-        }
+        # Don't return a response for cancelled requests - let the cancellation propagate
+        raise
     except Exception as e:
         logger.error(f"Error getting anime episode sources: {str(e)}")
         return {

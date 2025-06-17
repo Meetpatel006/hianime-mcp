@@ -316,7 +316,7 @@ async def get_all_anime_episode_sources(episode_id: str, category: str = "sub") 
         successful_servers = []
         failed_servers = []
 
-        # Fetch sources from each available server
+        # Fetch sources from each available server with individual timeouts
         for server in available_servers:
             server_name = server.serverName
             server_id = server.serverId
@@ -328,8 +328,11 @@ async def get_all_anime_episode_sources(episode_id: str, category: str = "sub") 
 
                 logger.info(f"Fetching sources from {server_name} (ID: {server_id}, Scraper: {scraper_server})")
 
-                # Get sources for this specific server
-                server_result = await getAnimeEpisodeSources(episode_id, scraper_server, category)
+                # Get sources for this specific server with timeout
+                server_result = await asyncio.wait_for(
+                    getAnimeEpisodeSources(episode_id, scraper_server, category),
+                    timeout=45.0  # 45 second timeout per server
+                )
 
                 sources_data[server_name] = {
                     "serverName": server_name,
@@ -344,6 +347,18 @@ async def get_all_anime_episode_sources(episode_id: str, category: str = "sub") 
                 successful_servers.append(server_name)
                 logger.info(f"✓ Successfully fetched sources from {server_name}")
 
+            except asyncio.TimeoutError:
+                logger.warning(f"✗ Timeout fetching sources from {server_name} (45s limit)")
+                failed_servers.append({
+                    "serverName": server_name,
+                    "serverId": server_id,
+                    "hianimeid": hianimeid,
+                    "error": "Request timed out after 45 seconds"
+                })
+            except asyncio.CancelledError:
+                logger.warning(f"✗ Request cancelled while fetching from {server_name}")
+                # Don't add to failed servers, just re-raise the cancellation
+                raise
             except Exception as e:
                 logger.warning(f"✗ Failed to fetch sources from {server_name}: {str(e)}")
                 failed_servers.append({
@@ -368,6 +383,11 @@ async def get_all_anime_episode_sources(episode_id: str, category: str = "sub") 
                 "failedServersList": failed_servers
             }
         }
+
+    except asyncio.CancelledError:
+        logger.warning(f"Request cancelled while getting all episode sources for {episode_id}")
+        # Re-raise cancellation to let it propagate properly
+        raise
 
     except Exception as e:
         logger.error(f"Unexpected error getting all episode sources: {str(e)}")
