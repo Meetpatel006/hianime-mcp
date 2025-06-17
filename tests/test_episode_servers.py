@@ -34,17 +34,17 @@ def test_episode_servers_scraper():
         if result.sub:
             logger.info("  Sub servers:")
             for i, server in enumerate(result.sub):
-                logger.info(f"    {i+1}. {server.serverName} (ID: {server.serverId})")
-        
+                logger.info(f"    {i+1}. {server.serverName} (ID: {server.serverId}, HiAnime: {server.hianimeid})")
+
         if result.dub:
             logger.info("  Dub servers:")
             for i, server in enumerate(result.dub):
-                logger.info(f"    {i+1}. {server.serverName} (ID: {server.serverId})")
-        
+                logger.info(f"    {i+1}. {server.serverName} (ID: {server.serverId}, HiAnime: {server.hianimeid})")
+
         if result.raw:
             logger.info("  Raw servers:")
             for i, server in enumerate(result.raw):
-                logger.info(f"    {i+1}. {server.serverName} (ID: {server.serverId})")
+                logger.info(f"    {i+1}. {server.serverName} (ID: {server.serverId}, HiAnime: {server.hianimeid})")
         
         return True
         
@@ -145,7 +145,7 @@ async def test_mcp_all_servers_tool():
 
             servers = data.get('servers', [])
             for i, server in enumerate(servers):
-                logger.info(f"    {i+1}. {server.get('serverName')} (ID: {server.get('serverId')})")
+                logger.info(f"    {i+1}. {server.get('serverName')} (ID: {server.get('serverId')}, HiAnime: {server.get('hianimeid')})")
         else:
             logger.error(f"✗ MCP all servers tool returned error: {result.get('error')}")
             return False

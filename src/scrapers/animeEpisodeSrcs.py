@@ -258,6 +258,125 @@ async def get_anime_episode_sources(episode_id: str, server: str = "VidStreaming
             "context": "get_anime_episode_sources"
         }
 
+
+async def get_all_anime_episode_sources(episode_id: str, category: str = "sub") -> Dict[str, Any]:
+    """
+    Get anime episode sources from ALL available servers for a specific category.
+
+    Args:
+        episode_id: The episode ID in format 'anime-title?ep=12345'
+        category: The category (sub, dub, or raw)
+
+    Returns:
+        Dictionary containing sources from all available servers and metadata
+    """
+    try:
+        logger.info(f"Getting ALL episode sources for: {episode_id}, category: {category}")
+
+        # Validate category parameter
+        if category not in ["sub", "dub", "raw"]:
+            logger.warning(f"Invalid category '{category}', defaulting to sub")
+            category = "sub"
+
+        # First, get the list of available servers for this episode and category
+        from .animeEpisodeServers import get_episode_servers
+        servers_result = get_episode_servers(episode_id)
+
+        # Get servers for the specified category
+        if category == "sub":
+            available_servers = servers_result.sub
+        elif category == "dub":
+            available_servers = servers_result.dub
+        else:  # raw
+            available_servers = servers_result.raw
+
+        if not available_servers:
+            logger.warning(f"No servers available for category '{category}'")
+            return {
+                "success": True,
+                "data": {
+                    "episodeId": episode_id,
+                    "category": category,
+                    "servers": [],
+                    "totalServers": 0,
+                    "sources": {}
+                }
+            }
+
+        # Map server IDs to server names for the episode sources scraper
+        server_id_to_name = {
+            1: Servers.VidCloud,    # rapidcloud
+            3: Servers.StreamTape,  # streamtape
+            4: Servers.VidStreaming, # vidstreaming
+            5: Servers.StreamSB,    # streamsb
+            6: Servers.VidCloud,    # megacloud (uses same extractor as rapidcloud)
+        }
+
+        sources_data = {}
+        successful_servers = []
+        failed_servers = []
+
+        # Fetch sources from each available server
+        for server in available_servers:
+            server_name = server.serverName
+            server_id = server.serverId
+            hianimeid = server.hianimeid
+
+            try:
+                # Map server ID to the appropriate server name for the scraper
+                scraper_server = server_id_to_name.get(server_id, Servers.VidStreaming)
+
+                logger.info(f"Fetching sources from {server_name} (ID: {server_id}, Scraper: {scraper_server})")
+
+                # Get sources for this specific server
+                server_result = await getAnimeEpisodeSources(episode_id, scraper_server, category)
+
+                sources_data[server_name] = {
+                    "serverName": server_name,
+                    "serverId": server_id,
+                    "hianimeid": hianimeid,
+                    "sources": server_result.get("sources", []),
+                    "headers": server_result.get("headers", {}),
+                    "anilistID": server_result.get("anilistID"),
+                    "malID": server_result.get("malID")
+                }
+
+                successful_servers.append(server_name)
+                logger.info(f"✓ Successfully fetched sources from {server_name}")
+
+            except Exception as e:
+                logger.warning(f"✗ Failed to fetch sources from {server_name}: {str(e)}")
+                failed_servers.append({
+                    "serverName": server_name,
+                    "serverId": server_id,
+                    "hianimeid": hianimeid,
+                    "error": str(e)
+                })
+
+        logger.info(f"Successfully retrieved sources from {len(successful_servers)} servers, {len(failed_servers)} failed")
+
+        return {
+            "success": True,
+            "data": {
+                "episodeId": episode_id,
+                "category": category,
+                "episodeNo": servers_result.episodeNo,
+                "totalServers": len(available_servers),
+                "successfulServers": len(successful_servers),
+                "failedServers": len(failed_servers),
+                "sources": sources_data,
+                "failedServersList": failed_servers
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Unexpected error getting all episode sources: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "context": "get_all_anime_episode_sources"
+        }
+
 # # Example Usage
 # async def main():
 #     # Example usage (replace with actual episode ID and server)

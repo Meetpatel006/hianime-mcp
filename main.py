@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 from src.management import get_logger
 from src.scrapers import HomePageScraper
 from src.scrapers.animeAboutInfo import get_anime_about_info as scrape_anime_about_info
-from src.scrapers.animeEpisodeSrcs import get_anime_episode_sources as scrape_anime_episode_sources
+from src.scrapers.animeEpisodeSrcs import get_all_anime_episode_sources as scrape_all_anime_episode_sources
 from src.scrapers.animeEpisodeServers import get_episode_servers as scrape_episode_servers
 from src.utils.config import Config
 
@@ -231,10 +231,10 @@ async def get_anime_about_info(ctx: Context, anime_id: str = "") -> dict:
         }
 
 @mcp.tool()
-async def get_anime_episode_sources(ctx: Context, episode_id: str = "", server: str = "VidStreaming", category: str = "sub") -> dict:
-    """Get anime episode streaming sources."""
+async def get_anime_episode_sources(ctx: Context, episode_id: str = "", category: str = "sub") -> dict:
+    """Get anime episode streaming sources from ALL available servers for the specified category."""
     try:
-        logger.info(f"Received request for episode sources: episode_id='{episode_id}', server='{server}', category='{category}'")
+        logger.info(f"Received request for episode sources: episode_id='{episode_id}', category='{category}'")
 
         if not episode_id:
             logger.error("Empty episode_id received")
@@ -250,17 +250,24 @@ async def get_anime_episode_sources(ctx: Context, episode_id: str = "", server: 
                 "error": "episode_id must be in format 'anime-title?ep=12345'"
             }
 
+        if category not in ["sub", "dub", "raw"]:
+            logger.error(f"Invalid category: {category}")
+            return {
+                "success": False,
+                "error": "category must be one of: sub, dub, raw"
+            }
+
         # Add timeout to prevent hanging connections
         try:
             result = await asyncio.wait_for(
-                scrape_anime_episode_sources(episode_id, server, category),
-                timeout=30.0  # 30 second timeout
+                scrape_all_anime_episode_sources(episode_id, category),
+                timeout=120.0  # 120 second timeout for multiple servers
             )
         except asyncio.TimeoutError:
             logger.error(f"Timeout while fetching episode sources for {episode_id}")
             return {
                 "success": False,
-                "error": "Request timed out while fetching episode sources"
+                "error": "Request timed out while fetching episode sources from all servers"
             }
 
         if not result:
@@ -270,7 +277,7 @@ async def get_anime_episode_sources(ctx: Context, episode_id: str = "", server: 
                 "error": "Failed to fetch episode sources - no data returned"
             }
 
-        logger.info(f"Successfully retrieved episode sources for {episode_id}")
+        logger.info(f"Successfully retrieved episode sources from all servers for {episode_id}")
         return result
 
     except asyncio.CancelledError:
@@ -313,9 +320,9 @@ async def get_episode_servers(ctx: Context, episode_id: str = "") -> dict:
         return {
             "success": True,
             "data": {
-                "sub": [{"serverName": server.serverName, "serverId": server.serverId} for server in result.sub],
-                "dub": [{"serverName": server.serverName, "serverId": server.serverId} for server in result.dub],
-                "raw": [{"serverName": server.serverName, "serverId": server.serverId} for server in result.raw],
+                "sub": [{"serverName": server.serverName, "serverId": server.serverId, "hianimeid": server.hianimeid} for server in result.sub],
+                "dub": [{"serverName": server.serverName, "serverId": server.serverId, "hianimeid": server.hianimeid} for server in result.dub],
+                "raw": [{"serverName": server.serverName, "serverId": server.serverId, "hianimeid": server.hianimeid} for server in result.raw],
                 "episodeId": result.episodeId,
                 "episodeNo": result.episodeNo
             }
@@ -373,7 +380,7 @@ async def get_all_episode_servers(ctx: Context, episode_id: str = "", category: 
                 "episodeId": result.episodeId,
                 "episodeNo": result.episodeNo,
                 "category": category,
-                "servers": [{"serverName": server.serverName, "serverId": server.serverId} for server in servers],
+                "servers": [{"serverName": server.serverName, "serverId": server.serverId, "hianimeid": server.hianimeid} for server in servers],
                 "totalServers": len(servers)
             }
         }

@@ -151,7 +151,8 @@ def get_episode_servers(episode_id: str) -> ScrapedEpisodeServers:
 
                 result.sub.append(EpisodeServer(
                     serverName=mapped_server_name,
-                    serverId=server_id
+                    serverId=server_id,
+                    hianimeid=original_server_name
                 ))
         
         # Extract dub servers
@@ -173,7 +174,8 @@ def get_episode_servers(episode_id: str) -> ScrapedEpisodeServers:
 
                 result.dub.append(EpisodeServer(
                     serverName=mapped_server_name,
-                    serverId=server_id
+                    serverId=server_id,
+                    hianimeid=original_server_name
                 ))
         
         # Extract raw servers
@@ -195,7 +197,8 @@ def get_episode_servers(episode_id: str) -> ScrapedEpisodeServers:
 
                 result.raw.append(EpisodeServer(
                     serverName=mapped_server_name,
-                    serverId=server_id
+                    serverId=server_id,
+                    hianimeid=original_server_name
                 ))
         
         logger.info(f"Successfully scraped episode servers: sub={len(result.sub)}, dub={len(result.dub)}, raw={len(result.raw)}")
