@@ -94,7 +94,8 @@ async def _getAnimeEpisodeSources(
             headers={
                 "Referer": ep_id_full_url,
                 "X-Requested-With": "XMLHttpRequest",
-            }
+            },
+            timeout=10  # Add timeout to prevent hanging
         )
         resp.raise_for_status()
         soup = BeautifulSoup(resp.json()["html"], 'html.parser')
@@ -119,7 +120,8 @@ async def _getAnimeEpisodeSources(
 
         # Fetch sources link
         sources_resp = requests.get(
-            f"{SRC_AJAX_URL}/v2/episode/sources?id={server_id}"
+            f"{SRC_AJAX_URL}/v2/episode/sources?id={server_id}",
+            timeout=10  # Add timeout to prevent hanging
         )
         sources_resp.raise_for_status()
         link = sources_resp.json()["link"]
@@ -163,7 +165,7 @@ async def getAnimeEpisodeSources(
             "Referer": SRC_BASE_URL,
             "User-Agent": USER_AGENT_HEADER,
             "X-Requested-With": "XMLHttpRequest",
-        })
+        }, timeout=10)
 
         episode_src_data, anime_src_resp = await asyncio.gather(
             episode_src_data_task, anime_src_req_task

@@ -249,7 +249,18 @@ async def get_anime_episode_sources(ctx: Context, episode_id: str = "", server: 
                 "error": "episode_id must be in format 'anime-title?ep=12345'"
             }
 
-        result = await scrape_anime_episode_sources(episode_id, server, category)
+        # Add timeout to prevent hanging connections
+        try:
+            result = await asyncio.wait_for(
+                scrape_anime_episode_sources(episode_id, server, category),
+                timeout=30.0  # 30 second timeout
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout while fetching episode sources for {episode_id}")
+            return {
+                "success": False,
+                "error": "Request timed out while fetching episode sources"
+            }
 
         if not result:
             logger.error(f"No result from scraping for episode_id: {episode_id}")
@@ -261,6 +272,12 @@ async def get_anime_episode_sources(ctx: Context, episode_id: str = "", server: 
         logger.info(f"Successfully retrieved episode sources for {episode_id}")
         return result
 
+    except asyncio.CancelledError:
+        logger.warning(f"Request cancelled for episode_id: {episode_id}")
+        return {
+            "success": False,
+            "error": "Request was cancelled"
+        }
     except Exception as e:
         logger.error(f"Error getting anime episode sources: {str(e)}")
         return {
@@ -273,9 +290,17 @@ async def get_anime_episode_sources(ctx: Context, episode_id: str = "", server: 
 # Start the server when this script is run directly
 if __name__ == "__main__":
     import uvicorn
-    
+
     # Log the startup
     logger.info("Starting Anime MCP server...")
-    
-    # Run the app with uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    # Run the app with uvicorn with improved configuration
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        log_level="info",
+        access_log=False,  # Reduce log noise
+        timeout_keep_alive=30,  # Keep connections alive for 30 seconds
+        timeout_graceful_shutdown=10  # Graceful shutdown timeout
+    )
