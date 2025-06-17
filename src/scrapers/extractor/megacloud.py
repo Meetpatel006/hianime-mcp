@@ -6,7 +6,6 @@ from Crypto.Util.Padding import unpad
 import json
 import re
 
-# Placeholder for HiAnimeError if not available from project structure
 class HiAnimeError(Exception):
     def __init__(self, message, context, status_code):
         super().__init__(message)
@@ -20,8 +19,6 @@ megacloud_config = {
 }
 
 class MegaCloud:
-    def __init__(self):
-        pass
 
     def _evp_bytes_to_key(self, password, salt, key_len, iv_len):
         # Equivalent to OpenSSL's EVP_BytesToKey

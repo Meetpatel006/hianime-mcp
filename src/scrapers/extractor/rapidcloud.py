@@ -3,12 +3,10 @@ import base64
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 import json
+from src.management import get_logger
 
-# Assuming these are available from your project structure
-# from config.logger import log
-# from utils.index import substringAfter, substringBefore
-
-# Placeholder for log and substring functions if not available
+# Configure logging
+logger = get_logger("RapidCloud")
 class Logger:
     def info(self, message):
         print(f"INFO: {message}")
@@ -94,7 +92,7 @@ class RapidCloud:
                     try:
                         parsed_decrypt_key = json.loads(decrypt_key)
                     except json.JSONDecodeError:
-                        log.info("Decrypt key is not a valid JSON array. Using fallback key.")
+                        logger.info("Decrypt key is not a valid JSON array. Using fallback key.")
                         parsed_decrypt_key = [] # Fallback to empty if not JSON
 
                     for index_pair in parsed_decrypt_key:
@@ -134,7 +132,7 @@ class RapidCloud:
                     sources = json.loads(decrypted_bytes.decode('utf-8'))
 
                 except Exception as err:
-                    log.info(f"Decryption error: {err}")
+                    logger.info(f"Decryption error: {err}")
                     raise Exception("Cannot decrypt sources. Perhaps the key is invalid.")
 
             self.sources = []
@@ -205,10 +203,10 @@ class RapidCloud:
             return result
 
         except requests.exceptions.RequestException as e:
-            log.info(f"Request error: {e}")
+            logger.info(f"Request error: {e}")
             raise
         except Exception as err:
-            log.info(f"An unexpected error occurred: {err}")
+            logger.info(f"An unexpected error occurred: {err}")
             raise
 
 
