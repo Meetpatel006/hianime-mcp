@@ -360,12 +360,18 @@ async def get_all_anime_episode_sources(episode_id: str, category: str = "sub") 
                 # Don't add to failed servers, just re-raise the cancellation
                 raise
             except Exception as e:
-                logger.warning(f"✗ Failed to fetch sources from {server_name}: {str(e)}")
+                error_msg = str(e)
+                if "Padding is incorrect" in error_msg or "padding" in error_msg.lower():
+                    error_msg = f"Decryption failed for {server_name}. The server may have updated its encryption method."
+                    logger.warning(f"✗ Decryption error for {server_name}: {str(e)}")
+                else:
+                    logger.warning(f"✗ Failed to fetch sources from {server_name}: {str(e)}")
+
                 failed_servers.append({
                     "serverName": server_name,
                     "serverId": server_id,
                     "hianimeid": hianimeid,
-                    "error": str(e)
+                    "error": error_msg
                 })
 
         logger.info(f"Successfully retrieved sources from {len(successful_servers)} servers, {len(failed_servers)} failed")

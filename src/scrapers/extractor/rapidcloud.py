@@ -132,8 +132,11 @@ class RapidCloud:
                     sources = json.loads(decrypted_bytes.decode('utf-8'))
 
                 except Exception as err:
-                    logger.info(f"Decryption error: {err}")
-                    raise Exception("Cannot decrypt sources. Perhaps the key is invalid.")
+                    logger.error(f"Decryption error: {err}")
+                    if "Padding is incorrect" in str(err):
+                        raise Exception("Decryption failed due to incorrect padding. This usually means the encryption key has changed or the data is corrupted.")
+                    else:
+                        raise Exception(f"Cannot decrypt sources: {str(err)}. Perhaps the key is invalid.")
 
             self.sources = []
             if sources:

@@ -29,19 +29,23 @@ def _evp_bytes_to_key(password, salt, key_len, iv_len):
     return key, iv
 
 def decrypt_data(encrypted_data: str, key: str, iv: str = None):
-    if iv:
-        key_bytes = key.encode("utf-8")
-        iv_bytes = iv.encode("utf-8")
-        contents = base64.b64decode(encrypted_data)
-    else:
-        cypher = base64.b64decode(encrypted_data)
-        salt = cypher[8:16]
-        key_bytes, iv_bytes = _evp_bytes_to_key(key, salt, 32, 16) # 32 bytes for AES-256 key, 16 for IV
-        contents = cypher[16:]
+    try:
+        if iv:
+            key_bytes = key.encode("utf-8")
+            iv_bytes = iv.encode("utf-8")
+            contents = base64.b64decode(encrypted_data)
+        else:
+            cypher = base64.b64decode(encrypted_data)
+            salt = cypher[8:16]
+            key_bytes, iv_bytes = _evp_bytes_to_key(key, salt, 32, 16) # 32 bytes for AES-256 key, 16 for IV
+            contents = cypher[16:]
 
-    cipher = AES.new(key_bytes, AES.MODE_CBC, iv=iv_bytes)
-    decrypted_bytes = cipher.decrypt(contents)
-    return unpad(decrypted_bytes, AES.block_size).decode("utf-8")
+        cipher = AES.new(key_bytes, AES.MODE_CBC, iv=iv_bytes)
+        decrypted_bytes = cipher.decrypt(contents)
+        return unpad(decrypted_bytes, AES.block_size).decode("utf-8")
+    except Exception as e:
+        logger.error(f"Decryption failed: {str(e)}")
+        raise Exception(f"Failed to decrypt data: {str(e)}. This may indicate the encryption key has changed or the data is corrupted.")
 
 
 async def getSources(video_id: str):
@@ -109,8 +113,13 @@ async def getSources(video_id: str):
 
         encrypted_source = "".join(encrypted_source_array)
 
-        decrypted = decrypt_data(encrypted_source, secret)
-        sources = json.loads(decrypted)
+        try:
+            decrypted = decrypt_data(encrypted_source, secret)
+            sources = json.loads(decrypted)
+        except Exception as e:
+            logger.error(f"Failed to decrypt or parse sources: {str(e)}")
+            logger.info("This may indicate that the encryption method has changed on the server side")
+            return None
 
         srcs_data["sources"] = sources
         return srcs_data

@@ -37,18 +37,24 @@ class MegaCloud:
         return key, iv
 
     def decrypt(self, encrypted: str, key_or_secret: str, maybe_iv: str = None):
-        if maybe_iv:
-            key = key_or_secret.encode("utf-8")
-            iv = maybe_iv.encode("utf-8")
-            contents = base64.b64decode(encrypted)
-        else:
-            cypher = base64.b64decode(encrypted)
-            salt = cypher[8:16]
-            key, iv = self._evp_bytes_to_key(key_or_secret, salt, 32, 16) # 32 bytes for AES-256 key, 16 for IV
-            contents = cypher[16:]
-        cipher = AES.new(key, AES.MODE_CBC, iv=iv)
-        decrypted_bytes = cipher.decrypt(contents)
-        return unpad(decrypted_bytes, AES.block_size).decode("utf-8")
+        try:
+            if maybe_iv:
+                key = key_or_secret.encode("utf-8")
+                iv = maybe_iv.encode("utf-8")
+                contents = base64.b64decode(encrypted)
+            else:
+                cypher = base64.b64decode(encrypted)
+                salt = cypher[8:16]
+                key, iv = self._evp_bytes_to_key(key_or_secret, salt, 32, 16) # 32 bytes for AES-256 key, 16 for IV
+                contents = cypher[16:]
+            cipher = AES.new(key, AES.MODE_CBC, iv=iv)
+            decrypted_bytes = cipher.decrypt(contents)
+            return unpad(decrypted_bytes, AES.block_size).decode("utf-8")
+        except Exception as e:
+            if "Padding is incorrect" in str(e):
+                raise Exception("Decryption failed due to incorrect padding. The encryption key may have changed or the data is corrupted.")
+            else:
+                raise Exception(f"Decryption failed: {str(e)}")
 
     def matchingKey(self, value: str, script: str):
         regex = re.compile(r",{}=((?:0x)?([0-9a-fA-F]+))".format(re.escape(value)))
